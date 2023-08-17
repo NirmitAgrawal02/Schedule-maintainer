@@ -12,6 +12,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from sys import argv
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/calendar']
@@ -38,7 +39,13 @@ def main():
         # Save the credentials for the next run
         with open('token.json', 'w') as token:
             token.write(creds.to_json())
-    commitHours(creds)
+            if argv[1] == 'add':
+                duration = argv[2]
+                description = argv[3]
+                addEvent(creds, duration, description)
+            if argv[1] == 'commit':
+                commitHours(creds)
+    # addEvent(creds, 2, "Project")
 
 
 def commitHours(creds):
@@ -85,6 +92,30 @@ def commitHours(creds):
 
     except HttpError as error:
         print('An error occurred: %s' % error)
+
+
+def addEvent(creds, duration, description):
+    start = datetime.datetime.utcnow()
+    end = datetime.datetime.utcnow() + datetime.timedelta(hours=int(duration))
+    start_formatted = start.isoformat() + 'Z'
+    end_formatted = end.isoformat() + 'Z'
+
+    event = {
+        'summary': description,
+        'start': {
+            'dateTime': start_formatted,
+            'timeZone': 'US/Central',
+        },
+        'end': {
+            'dateTime': end_formatted,
+            'timeZone': 'US/Central',
+        },
+    }
+
+    service = build('calendar', 'v3', credentials=creds)
+    event = service.events().insert(
+        calendarId='84a034b6c4fd054618af95ce2a1880714e507e023f15f8abb064c2d7bcf64a8c@group.calendar.google.com', body=event).execute()
+    print('Event Created %s' % (event.get('htmlLink')))
 
 
 if __name__ == '__main__':
