@@ -51,7 +51,7 @@ def commitHours(creds):
         timeEnd = str(today) + "T23:59:59Z"
         print('Getting the upcoming 10 events')
         events_result = service.events().list(calendarId='84a034b6c4fd054618af95ce2a1880714e507e023f15f8abb064c2d7bcf64a8c@group.calendar.google.com', timeMin=timeStart,
-                                              timeMax=timeEnd, singleEvents=True, orderBy='startTime', timezone='US/Central').execute()
+                                              timeMax=timeEnd, singleEvents=True, orderBy='startTime', timeZone='US/Central').execute()
         events = events_result.get('items', [])
 
         if not events:
@@ -69,6 +69,19 @@ def commitHours(creds):
             duration = new_end - new_start
 
             total_duration += duration
+
+            print(f"{event['summary']}, duration: {duration}")
+            print(f"Total coding time: {total_duration}")
+
+            conn = sqlite3.connect(f'hours.db')
+            cur = conn.cursor()
+            print("Opened database successfully")
+            date = datetime.date.today()
+
+            formatted_total_duration = total_duration.seconds/60/60
+            coding_hours = (date, 'CODING', formatted_total_duration)
+            cur.execute("Insert into hours values(?,?,?);", coding_hours)
+            conn.commit()
 
     except HttpError as error:
         print('An error occurred: %s' % error)
